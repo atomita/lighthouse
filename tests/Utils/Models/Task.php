@@ -5,6 +5,7 @@ namespace Tests\Utils\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -55,5 +56,10 @@ class Task extends Model
     public function hour(): MorphOne
     {
         return $this->morphOne(Hour::class, 'hourable');
+    }
+
+    public function targetDay(): HasMany
+    {
+        return $this->hasMany(TaskTargetDay::class);
     }
 }

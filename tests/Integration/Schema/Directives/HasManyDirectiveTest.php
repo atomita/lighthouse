@@ -7,6 +7,7 @@ use GraphQL\Error\Error;
 use Illuminate\Support\Arr;
 use Tests\Utils\Models\Post;
 use Tests\Utils\Models\Task;
+use Tests\Utils\Models\TaskTargetDay;
 use Tests\Utils\Models\User;
 
 class HasManyDirectiveTest extends DBTestCase
@@ -38,6 +39,13 @@ class HasManyDirectiveTest extends DBTestCase
             // This task should be ignored via global scope on the Task model
             'name' => 'cleaning',
         ]);
+
+        $this->tasks->each(function ($task) {
+            factory(TaskTargetDay::class)->create([
+                'task_id' => $task->getKey(),
+                'day' => '2019-09-13'
+            ]);
+        });
 
         $this->be($this->user);
     }
@@ -705,5 +713,67 @@ class HasManyDirectiveTest extends DBTestCase
 
         $type = $schema->getType('User');
         $type->config['fields']();
+    }
+
+    /**
+     * @test
+     */
+    public function itCanGetDateHasManyNestedRelationships()
+    {
+        $this->schema = '
+        type User {
+            tasks: [Task!]! @hasMany(type: "paginator")
+        }
+
+        type Task {
+            id: Int!
+            targetDay: [TaskTargetDay!]! @hasMany(type: "paginator")
+        }
+
+        type TaskTargetDay {
+            id: Int!
+            day: String!
+        }
+
+        type Query {
+            user: User @auth
+        }
+        ';
+
+        $this->graphQL('
+        {
+            user {
+                tasks(first: 2) {
+                    data {
+                        id
+                        targetDay(first: 2) {
+                            data {
+                                id
+                                day
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        ')->assertJson([
+            'data' => [
+                'user' => [
+                    'tasks' => [
+                        'data' => [
+                            [
+                                'targetDay' => [
+                                    'data' => [
+                                        [
+                                            'day' => '2019-09-13'
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ],
+                    ],
+                ],
+            ],
+        ]);
     }
 }
