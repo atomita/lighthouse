@@ -35,7 +35,7 @@ class NestedOneToOne implements ArgResolver
         if ($args->has('update')) {
             $updateModel = new ResolveNested(new UpdateModel(new SaveModel($relation)));
 
-            $updateModel($relation->make(), $args->arguments['update']->value);
+            $updateModel($relation, $args->arguments['update']->value);
         }
 
         if ($args->has('upsert')) {
