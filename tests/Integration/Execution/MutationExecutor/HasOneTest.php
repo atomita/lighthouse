@@ -489,7 +489,8 @@ GRAPHQL
      */
     public function testShouldBeDoNotUpsertHasOneWhenUnrelatedModel($action): void
     {
-        $this->expectException(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
+        $this->expectException(\PDOException::class);
+        $this->expectExceptionMessage("SQLSTATE[23000]: Integrity constraint violation: 1062 Duplicate entry '2' for key 'PRIMARY'");
 
         factory(Task::class)
             ->create()
