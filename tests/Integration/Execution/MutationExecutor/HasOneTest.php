@@ -483,4 +483,53 @@ GRAPHQL
             $this->assertEquals('baz', $otherPost->title);
         }
     }
+
+    /**
+     * @dataProvider existingModelMutations
+     */
+    public function testShouldBeDoNotUpsertHasOneWhenUnrelatedModel($action): void
+    {
+        $this->expectException(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
+
+        factory(Task::class)
+            ->create()
+            ->post()
+            ->save(
+                factory(Post::class)->create(['title' => 'bar'])
+            );
+        factory(Task::class)
+            ->create()
+            ->post()
+            ->save(
+                $otherPost = factory(Post::class)->create(['title' => 'baz'])
+            );
+
+        try {
+            $this->graphQL(/** @lang GraphQL */ <<<GRAPHQL
+            mutation {
+                ${action}Task(input: {
+                    id: 1
+                    name: "foo"
+                    post: {
+                        upsert: {
+                            id: {$otherPost->id}
+                            title: "barbaz"
+                        }
+                    }
+                }) {
+                    id
+                    name
+                    post {
+                        id
+                        title
+                    }
+                }
+            }
+GRAPHQL
+            );
+        } finally {
+            $otherPost->refresh();
+            $this->assertEquals('baz', $otherPost->title);
+        }
+    }
 }
