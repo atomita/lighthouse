@@ -533,4 +533,45 @@ GRAPHQL
             $this->assertEquals('baz', $otherPost->title);
         }
     }
+
+    /**
+     * @dataProvider existingModelMutations
+     */
+    public function testShouldBeDoNotDeleteHasOneWhenUnrelatedModel($action): void
+    {
+        factory(Task::class)
+            ->create()
+            ->post()
+            ->save(
+                factory(Post::class)->create(['title' => 'bar'])
+            );
+        factory(Task::class)
+            ->create()
+            ->post()
+            ->save(
+                $otherPost = factory(Post::class)->create(['title' => 'baz'])
+            );
+
+        $this->graphQL(/** @lang GraphQL */ <<<GRAPHQL
+        mutation {
+            ${action}Task(input: {
+                id: 1
+                name: "foo"
+                post: {
+                    delete: {$otherPost->id}
+                }
+            }) {
+                id
+                name
+                post {
+                    id
+                    title
+                }
+            }
+        }
+GRAPHQL
+        );
+
+        $this->assertTrue(Post::whereKey($otherPost->id)->exists());
+    }
 }
