@@ -55,6 +55,7 @@ class BelongsToTest extends DBTestCase
     }
 
     input UpdateUserRelation {
+        update: UpsertUserInput
         disconnect: Boolean
         delete: Boolean
     }
@@ -1125,5 +1126,54 @@ GRAPHQL
                 ],
             ],
         ]);
+    }
+
+    /**
+     * @dataProvider existingModelMutations
+     */
+    public function testShouldBeDoNotUpdateBelongsToWhenUnrelatedModel($action): void
+    {
+        $this->expectException(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
+
+        factory(User::class)
+            ->create(['name' => 'bar'])
+            ->tasks()
+            ->save(
+                factory(Task::class)->create()
+            );
+        ($otherUser = factory(User::class)
+            ->create(['name' => 'baz']))
+            ->tasks()
+            ->save(
+                factory(Task::class)->create()
+            );
+
+        try {
+            $this->graphQL(/** @lang GraphQL */ <<<GRAPHQL
+            mutation {
+                ${action}Task(input: {
+                    id: 1
+                    name: "foo"
+                    user: {
+                        update: {
+                            id: {$otherUser->id}
+                            name: "barbaz"
+                        }
+                    }
+                }) {
+                    id
+                    name
+                    user {
+                        id
+                        name
+                    }
+                }
+            }
+GRAPHQL
+            );
+        } finally {
+            $otherUser->refresh();
+            $this->assertEquals('baz', $otherUser->name);
+        }
     }
 }
