@@ -30,9 +30,9 @@ class NestedOneToMany implements ArgResolver
         static::createUpdateUpsert($args, $relation);
 
         if ($args->has('delete')) {
-            $relation->getRelated()::destroy(
+            (clone $relation)->whereKey(
                 $args->arguments['delete']->toPlain()
-            );
+            )->delete();
         }
     }
 
