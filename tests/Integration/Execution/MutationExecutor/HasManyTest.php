@@ -610,4 +610,54 @@ GRAPHQL
             $this->assertEquals('baz', $otherTask->name);
         }
     }
+
+    /**
+     * @dataProvider existingModelMutations
+     */
+    public function testShouldBeDoNotUpsertHasManyWhenUnrelatedModel($action): void
+    {
+        $this->expectException(\PDOException::class);
+        $this->expectExceptionMessage("SQLSTATE[23000]: Integrity constraint violation: 1062 Duplicate entry '2' for key 'PRIMARY'");
+
+        factory(User::class)
+            ->create()
+            ->tasks()
+            ->save(
+                factory(Task::class)->create(['name' => 'bar'])
+            );
+        factory(User::class)
+            ->create()
+            ->tasks()
+            ->save(
+                $otherTask = factory(Task::class)->create(['name' => 'baz'])
+            );
+
+        try {
+            $this->graphQL(/** @lang GraphQL */ <<<GRAPHQL
+            mutation {
+                ${action}User(input: {
+                    id: 1
+                    name: "foo"
+                    tasks: {
+                        upsert: [{
+                            id: {$otherTask->id}
+                            name: "barbaz"
+                        }]
+                    }
+                }) {
+                    id
+                    name
+                    tasks {
+                        id
+                        name
+                    }
+                }
+            }
+GRAPHQL
+            );
+        } finally {
+            $otherTask->refresh();
+            $this->assertEquals('baz', $otherTask->name);
+        }
+    }
 }
