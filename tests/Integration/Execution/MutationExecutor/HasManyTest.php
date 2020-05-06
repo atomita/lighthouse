@@ -660,4 +660,45 @@ GRAPHQL
             $this->assertEquals('baz', $otherTask->name);
         }
     }
+
+    /**
+     * @dataProvider existingModelMutations
+     */
+    public function testShouldBeDoNotDeleteHasManyWhenUnrelatedModel($action): void
+    {
+        factory(User::class)
+            ->create()
+            ->tasks()
+            ->save(
+                factory(Task::class)->create(['name' => 'bar'])
+            );
+        factory(User::class)
+            ->create()
+            ->tasks()
+            ->save(
+                $otherTask = factory(Task::class)->create(['name' => 'baz'])
+            );
+
+        $this->graphQL(/** @lang GraphQL */ <<<GRAPHQL
+        mutation {
+            ${action}User(input: {
+                id: 1
+                name: "foo"
+                tasks: {
+                    delete: [{$otherTask->id}]
+                }
+            }) {
+                id
+                name
+                tasks {
+                    id
+                    name
+                }
+            }
+        }
+GRAPHQL
+        );
+
+        $this->assertTrue(Task::whereKey($otherTask->id)->exists());
+    }
 }
