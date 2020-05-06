@@ -41,7 +41,7 @@ class NestedBelongsTo implements ArgResolver
             $updateModel = new ResolveNested(new UpdateModel(new SaveModel($this->relation)));
 
             $related = $updateModel(
-                $this->relation->make(),
+                clone $this->relation,
                 $args->arguments['update']->value
             );
             $this->relation->associate($related);
