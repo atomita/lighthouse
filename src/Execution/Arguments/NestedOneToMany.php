@@ -61,7 +61,7 @@ class NestedOneToMany implements ArgResolver
             $upsertModel = new ResolveNested(new UpsertModel(new SaveModel($relation)));
 
             foreach ($args->arguments['upsert']->value as $childArgs) {
-                $upsertModel($relation->make(), $childArgs);
+                $upsertModel(clone $relation, $childArgs);
             }
         }
     }
