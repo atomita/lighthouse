@@ -561,4 +561,53 @@ GRAPHQL
 
         $this->assertEquals([2], $role->users()->pluck('users.id')->toArray());
     }
+
+    /**
+     * @dataProvider existingModelMutations
+     */
+    public function testShouldBeDoNotUpdateHasManyWhenUnrelatedModel($action): void
+    {
+        $this->expectException(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
+
+        factory(User::class)
+            ->create()
+            ->tasks()
+            ->save(
+                factory(Task::class)->create(['name' => 'bar'])
+            );
+        factory(User::class)
+            ->create()
+            ->tasks()
+            ->save(
+                $otherTask = factory(Task::class)->create(['name' => 'baz'])
+            );
+
+        try {
+            $this->graphQL(/** @lang GraphQL */ <<<GRAPHQL
+            mutation {
+                ${action}User(input: {
+                    id: 1
+                    name: "foo"
+                    tasks: {
+                        update: [{
+                            id: {$otherTask->id}
+                            name: "barbaz"
+                        }]
+                    }
+                }) {
+                    id
+                    name
+                    tasks {
+                        id
+                        name
+                    }
+                }
+            }
+GRAPHQL
+            );
+        } finally {
+            $otherTask->refresh();
+            $this->assertEquals('baz', $otherTask->name);
+        }
+    }
 }
