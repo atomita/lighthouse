@@ -45,9 +45,9 @@ class NestedOneToOne implements ArgResolver
         }
 
         if ($args->has('delete')) {
-            $relation->getRelated()::destroy(
+            $relation->whereKey(
                 $args->arguments['delete']->toPlain()
-            );
+            )->delete();
         }
     }
 }
